@@ -6,13 +6,13 @@ const Mutation = require("./mutation");
 const TypeDefs = require("./type");
 
 const server = new ApolloServer({
-  introspection: true,
-  playground: true,
   typeDefs: TypeDefs,
   resolvers: {
     Query,
     Mutation,
   },
+  introspection: true,
+  playground: true,
 });
 
 module.exports = server;
