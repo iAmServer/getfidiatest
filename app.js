@@ -11,7 +11,10 @@ mongoose.connect(process.env.MONGODB_URI, {
 });
 
 apolloServer.start().then(() => {
-  apolloServer.applyMiddleware({ app });
+    apolloServer.applyMiddleware({
+      app,
+      path: "/",
+    });
 
   app.listen({ port: process.env.PORT }, () =>
     console.log(
