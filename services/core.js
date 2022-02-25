@@ -1,14 +1,14 @@
 const nodemailer = require("nodemailer");
-const mg = require("nodemailer-mailgun-transport");
+const sgTransport = require("nodemailer-sendgrid-transport");
 const jwt = require("jsonwebtoken");
 
-const mailgunAuth = {
+const option = {
   auth: {
-    apiKey: process.env.MAILGUN_PK,
-    domain: process.env.MAILGUN_DOMIAN,
+    api_key: process.env.MAILGUN_PK,
   },
 };
-const smtpTransport = nodemailer.createTransport(mg(mailgunAuth));
+
+const client = nodemailer.createTransport(sgTransport(option));
 
 const emailSender = (receiver, subject, token) => {
   const mailOptions = {
@@ -18,9 +18,12 @@ const emailSender = (receiver, subject, token) => {
     html: `Get Fidia
     Please click on the link below to confirm your email address
     http://localhost:3000/account/${token}`,
+    text: `Get Fidia
+    Please click on the link below to confirm your email address
+    http://localhost:3000/account/${token}`,
   };
 
-  smtpTransport.sendMail(mailOptions, function (error, response) {
+  client.sendMail(mailOptions, function (error, response) {
     if (error) {
       console.log(error);
     } else {
