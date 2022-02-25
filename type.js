@@ -38,7 +38,7 @@ const typeDefs = gql`
   type Mutation {
     signup(creator: CreatorInput): AuthPayload
     confirmEmail(token: String!): EmailPayload
-    resendEmailVerification(token: String!): E
+    resendEmailVerification(token: String!): EmailPayload
     login(email: String!, password: String!): AuthPayload
   }
 `;
