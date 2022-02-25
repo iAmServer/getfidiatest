@@ -1,19 +1,72 @@
 const { createTestClient } = require("apollo-server-testing");
+const mongoose = require("mongoose");
+const { MongoMemoryServer } = require("mongodb-memory-server");
+const apolloServer = require("./index");
+const mongodb = await MongoMemoryServer.create();
 
-const server = require("./index");
+const connectDB = async () => {
+  const uri = mongodb.getUri();
+  const mongooseOpts = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    poolSize: 10,
+  };
 
-test("read a list of books name", async () => {
-  const { query } = createTestClient(server);
+  await mongoose.connect(uri, mongooseOpts);
+};
 
-  const GET_CREATORS = `
-  {
-    creator {
-      name
-    }
+const closeDB = async () => {
+  await mongoose.connection.dropDatabase();
+  await mongoose.connection.close();
+  await mongodb.stop();
+};
+
+const clearDB = async () => {
+  const collections = mongoose.connection.collections;
+
+  for (const key in collections) {
+    const collection = collections[key];
+    await collection.deleteMany();
   }
-  `;
+};
 
-  const response = await query({ query: GET_CREATORS });
+describe("Creator test", () => {
+  beforeAll(async () => await connectDB());
+  // afterEach(async () => await clearDB());
+  afterAll(async () => await closeDB());
 
-  expect(response.data.creators).toEqual([]);
+  test("list creators", async () => {
+    const { query, mutate } = createTestClient(apolloServer);
+
+    const GET_CREATORS = `
+    {
+      creators {
+        id,
+        name,
+        email
+      }
+    }
+    `;
+
+    const response = await query({ query: GET_CREATORS });
+    expect(response.data.creators).toEqual([]);
+
+    // const SIGN_UP = `
+    // mutation {
+    //   signup(
+    //     "name": "Ola Dayo",
+    //     "email": "dasthdeer@outlook.com",
+    //     "password": "Phpmyadmin1",
+    //     "phone": "08122517750",
+    //     "country": "NG"
+    //   )
+    // }
+    // `;
+
+    // response = await mutate({ mutation: SIGN_UP });
+    // expect(response.error).toBeUndefined();
+
+    // response = await query({ query: GET_CREATORS });
+    expect(response.data.creators).toEqual([]);
+  });
 });
