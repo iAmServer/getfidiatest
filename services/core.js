@@ -1,5 +1,5 @@
 const mailgun = require("mailgun-js");
-// const jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 
 const mg = mailgun({
   apiKey: process.env.MAILGUN_PK,
@@ -17,20 +17,24 @@ const emailSender = (receiver, subject, token) => {
   };
 
   mg.messages().send(data, (error, body) => {
-    return body;
+    return true;
   });
 };
 
+const emailToken = (creator) => {
+  const token = jwt.sign(
+    {
+      id: creator.id,
+      email: creator.email,
+    },
+    process.env.JWT_SECRET_KEY,
+    { expiresIn: 60 }
+  );
+
+  return token;
+};
+
 // const sendConfirmationEmail = async (user) => {
-//   const token = await jwt.sign(
-//     {
-//       _id: user._id,
-//     },
-//     process.env.JWT_SECRET_KEY
-//   );
-
-//   const url = `http://localhost:3000/confirmation/${token}`;
-
 //   transport
 //     .sendMail({
 //       from: "no-reply@doingiteasychannel.com",
@@ -46,4 +50,4 @@ const emailSender = (receiver, subject, token) => {
 //     });
 // };
 
-exports.emailSender = emailSender;
+module.exports = { emailSender, emailToken };

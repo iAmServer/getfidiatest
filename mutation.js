@@ -3,107 +3,122 @@ const bcrypt = require("bcrypt");
 const lodash = require("lodash");
 
 const CreatorModel = require("./models/creator");
-const { emailSender } = require("./services/email");
+const { emailSender, emailToken } = require("./services/core");
 
-const emailToken = (creator) => {
-  const token = jwt.sign(
-    {
-      id: creator.id,
-      email: creator.email,
-    },
-    process.env.JWT_SECRET_KEY,
-    { expiresIn: "1h" }
-  );
-
-  return token;
+const tokenAuth = async (creator) => {
+  if (creator) {
+    if (!creator.verified) {
+      await CreatorModel.updateOne({ _id: id }, { verified: true });
+      return {
+        success: true,
+        message: "Email confirmed successfully",
+      };
+    } else {
+      return {
+        success: true,
+        message: "Email already confirmed",
+      };
+    }
+  } else {
+    return {
+      success: false,
+      error: "User not found",
+    };
+  }
 };
 
 const Mutation = {
   async signup(_, { creator }) {
-    const password = await bcrypt.hash(creator.password, 10);
-    const newCreator = await CreatorModel.create({
-      ...creator,
-      password,
-    });
+    try {
+      const password = await bcrypt.hash(creator.password, 10);
+      const newCreator = await CreatorModel.create({
+        ...creator,
+        password,
+      });
 
-    const token = emailToken(newCreator);
-    emailSender(newCreator.email, "Confirm Email", token);
+      const token = emailToken(newCreator);
+      emailSender(newCreator.email, "Confirm Email", token);
 
-    return {
-      token,
-      creator: lodash.pick(newCreator, [
-        "id",
-        "name",
-        "email",
-        "phone",
-        "country",
-      ]),
-    };
+      return {
+        token,
+        creator: lodash.pick(newCreator, [
+          "id",
+          "name",
+          "email",
+          "phone",
+          "country",
+        ]),
+      };
+    } catch (err) {
+      if (err.name === "ValidationError") {
+        return {
+          error: "Email is assigned to another creator",
+        };
+      }
+    }
   },
   async confirmEmail(_, { token }) {
     try {
-      jwt.verify(token, process.env.JWT_SECRET_KEY, async (err, decoded) => {
-        if (err) {
-          if (err.name === "TokenExpiredError") {
-            return {
-              error: "Token expired",
-            };
-          }
+      const payload = await jwt.verify(token, process.env.JWT_SECRET_KEY);
+      const { id, email } = payload;
+      const creator = await CreatorModel.findOne({ _id: id, email });
 
-          return {
-            error: "Invalid token",
-          };
-        }
-
-        const { id, email } = decoded;
-        const creator = await CreatorModel.findOne({ id, email });
-
-        if (creator && !creator.verified) {
-          await CreatorModel.updateOne({ _id: id }, { verified: true });
-          return {
-            message: "Email confirmed successfully",
-          };
-        } else {
-          return {
-            message: "Email already confirmed",
-          };
-        }
-      });
+      return await tokenAuth(creator);
     } catch (err) {
-      return {
-        message: "Invalid token",
-      };
+      if (err) {
+        if (err.name === "TokenExpiredError") {
+          return {
+            success: false,
+            error: "Token expired",
+            message: "Request for a new token",
+          };
+        }
+
+        return {
+          success: false,
+          error: "Invalid token",
+          message: "Request for a new token",
+        };
+      }
     }
   },
   async resendEmailVerification(_, { token }) {
     try {
-      jwt.verify(token, process.env.JWT_SECRET_KEY, async (err, decoded) => {
-        if (err && err.name === "TokenExpiredError") {
-          decoded = jwt.verify(token, process.env.JWT_SECRET_KEY, {
+      const payload = await jwt.verify(token, process.env.JWT_SECRET_KEY);
+      const { id, email } = payload;
+      const creator = await CreatorModel.findOne({ _id: id, email });
+
+      return await tokenAuth(creator);
+    } catch (err) {
+      if (err) {
+        if (err.name === "TokenExpiredError") {
+          const payload = await jwt.verify(token, process.env.JWT_SECRET_KEY, {
             ignoreExpiration: true,
           });
+          const { id, email } = payload;
+          const creator = await CreatorModel.findOne({ _id: id, email });
+          const newToken = emailToken(creator);
+
+          if (!creator.verified) {
+            emailSender(newCreator.email, "Confirm Email", newToken);
+            return {
+              success: true,
+              message: "New verification email sent",
+            };
+          } else {
+            return {
+              success: true,
+              message: "Creator Verified",
+            };
+          }
         }
 
-        const { id, email } = decoded;
-        const creator = await CreatorModel.findOne({ id, email });
-
-        if (creator && !creator.verified) {
-          const token = emailToken(creator);
-
-          emailSender(creator.email, "Confirm Email", token);
-          return {
-            message: "Email sent successfully",
-          };
-        } else {
-          return {
-            message: "Email already confirmed",
-          };
-        }
-      });
-    } catch (err) {
-      return {
-        message: "Invalid token",
-      };
+        return {
+          success: false,
+          error: "Invalid token",
+          message: "Request for a new token",
+        };
+      }
     }
   },
   async login(_, { email, password }) {

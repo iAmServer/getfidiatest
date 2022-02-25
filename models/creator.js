@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+var uniqueValidator = require("mongoose-unique-validator");
 
 const creatorSchema = new mongoose.Schema(
   {
@@ -14,7 +15,6 @@ const creatorSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: true,
-      unique: true,
     },
     country: {
       type: String,
@@ -33,6 +33,7 @@ const creatorSchema = new mongoose.Schema(
   }
 );
 
+creatorSchema.plugin(uniqueValidator);
 creatorSchema.set("toJSON", {
   transform: (document, returnedObject) => {
     returnedObject.id = returnedObject._id.toString();

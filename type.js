@@ -28,6 +28,7 @@ const typeDefs = gql`
   type EmailPayload {
     success: Boolean!
     error: String
+    message: String
   }
 
   type Query {

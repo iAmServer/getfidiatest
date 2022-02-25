@@ -12,10 +12,11 @@ const app = express();
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  useCreateIndex: true,
 });
 
 const server = new ApolloServer({
+  introspection: true,
+  playground: true,
   typeDefs: TypeDefs,
   resolvers: {
     Query,
@@ -27,6 +28,8 @@ server.start().then(() => {
   server.applyMiddleware({ app });
 
   app.listen({ port: process.env.PORT }, () =>
-    console.log(`🚀 Server ready at http://localhost:4000${server.graphqlPath}`)
+    console.log(
+      `🚀 Server ready at http://localhost:${process.env.PORT}${server.graphqlPath}`
+    )
   );
 });
