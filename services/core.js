@@ -1,23 +1,31 @@
-const mailgun = require("mailgun-js");
+const nodemailer = require("nodemailer");
+const mg = require("nodemailer-mailgun-transport");
 const jwt = require("jsonwebtoken");
 
-const mg = mailgun({
-  apiKey: process.env.MAILGUN_PK,
-  domain: process.env.MAILGUN_DOMIAN,
-});
+const mailgunAuth = {
+  auth: {
+    apiKey: process.env.MAILGUN_PK,
+    domain: process.env.MAILGUN_DOMIAN,
+  },
+};
+const smtpTransport = nodemailer.createTransport(mg(mailgunAuth));
 
 const emailSender = (receiver, subject, token) => {
-  const data = {
+  const mailOptions = {
     from: process.env.MAILGUN_FROM,
     to: receiver,
     subject,
-    text: `Get Fidia
+    html: `Get Fidia
     Please click on the link below to confirm your email address
     http://localhost:3000/account/${token}`,
   };
 
-  mg.messages().send(data, (error, body) => {
-    return true;
+  smtpTransport.sendMail(mailOptions, function (error, response) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Successfully sent email.");
+    }
   });
 };
 
@@ -33,21 +41,5 @@ const emailToken = (creator) => {
 
   return token;
 };
-
-// const sendConfirmationEmail = async (user) => {
-//   transport
-//     .sendMail({
-//       from: "no-reply@doingiteasychannel.com",
-//       to: `${user.name} <${user.email}>`,
-//       subject: "Confirmation Email",
-//       html: `Confirmation Email <a href=${url}> ${url}</a>`,
-//     })
-//     .then(() => {
-//       console.log("Email sent");
-//     })
-//     .catch(() => {
-//       console.log("Emails was not sent");
-//     });
-// };
 
 module.exports = { emailSender, emailToken };
