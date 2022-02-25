@@ -2,9 +2,9 @@
   "name": "getfidiatest",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "nodemon index.js",
+    "start": "node app.js",
     "test": "jest"
   },
   "keywords": [],
@@ -15,7 +15,6 @@
     "bcrypt": "^3.0.8",
     "dotenv": "^8.2.0",
     "express": "^4.17.3",
-    "graphql": "^16.3.0",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.15",
     "mongoose": "^6.0.0",
@@ -25,6 +24,7 @@
     "nodemon": "^2.0.2"
   },
   "devDependencies": {
+    "apollo-server-testing": "^2.25.3",
     "jest": "^27.5.1"
   }
 }
