@@ -1,72 +1,75 @@
 const { createTestClient } = require("apollo-server-testing");
-const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
+
 const apolloServer = require("./index");
-const mongodb = await MongoMemoryServer.create();
-
-const connectDB = async () => {
-  const uri = mongodb.getUri();
-  const mongooseOpts = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    poolSize: 10,
-  };
-
-  await mongoose.connect(uri, mongooseOpts);
-};
-
-const closeDB = async () => {
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  await mongodb.stop();
-};
-
-const clearDB = async () => {
-  const collections = mongoose.connection.collections;
-
-  for (const key in collections) {
-    const collection = collections[key];
-    await collection.deleteMany();
-  }
-};
+const { dbConnect, dbDisconnect } = require("./db");
 
 describe("Creator test", () => {
-  beforeAll(async () => await connectDB());
-  // afterEach(async () => await clearDB());
-  afterAll(async () => await closeDB());
+  beforeAll(async () => await dbConnect());
+  afterAll(async () => await dbDisconnect());
+
+  test("creator sign up", async () => {
+    const { mutate } = createTestClient(apolloServer);
+
+    const mutation = `
+      mutation Signup {
+        signup (creator: {
+          name: "Ola Dayo",
+          email: "test@gmail.com",
+          password: "1234",
+          phone: "1111111111",
+          country: "NG"
+        }){
+          token
+          error
+          creator{
+            name
+            email
+            phone
+            id
+            country
+          }
+        }
+      }
+    `;
+
+    response = await mutate({ mutation: mutation });
+    expect(response.errors).toBeUndefined();
+    expect(response.data.signup.error).toBeNull();
+    expect(response.data.signup.token).toBeDefined();
+  });
+
+  test("login test", async () => {
+    const { mutate } = createTestClient(apolloServer);
+
+    const mutation = `
+      mutation Login {
+        login (email: "test@gmail.com", password: "1234"){
+          error
+        }
+      }
+    `;
+
+    response = await mutate({ mutation: mutation });
+    expect(response.data.login.error).toBe(
+      "User not verified, check your email"
+    );
+  });
 
   test("list creators", async () => {
-    const { query, mutate } = createTestClient(apolloServer);
+    const { query } = createTestClient(apolloServer);
 
-    const GET_CREATORS = `
+    const queries = `
     {
       creators {
         id,
         name,
-        email
+        email,
+        country
       }
     }
     `;
 
-    const response = await query({ query: GET_CREATORS });
-    expect(response.data.creators).toEqual([]);
-
-    // const SIGN_UP = `
-    // mutation {
-    //   signup(
-    //     "name": "Ola Dayo",
-    //     "email": "dasthdeer@outlook.com",
-    //     "password": "Phpmyadmin1",
-    //     "phone": "08122517750",
-    //     "country": "NG"
-    //   )
-    // }
-    // `;
-
-    // response = await mutate({ mutation: SIGN_UP });
-    // expect(response.error).toBeUndefined();
-
-    // response = await query({ query: GET_CREATORS });
-    expect(response.data.creators).toEqual([]);
+    const response = await query({ query: queries });
+    expect(response.data.creators).toBeDefined();
   });
 });
